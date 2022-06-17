@@ -37,8 +37,10 @@ func main() {
 		fmt.Printf("Error %s creating clientset\n", err.Error())
 	}
 
+	ch := make(chan struct{})
 	informers := informers.NewSharedInformerFactory(clientset, 10*time.Minute)
-
-	fmt.Println(clientset, informers)
+	c := NewController(clientset, informers.Apps().V1().Deployments())
+	informers.Start(ch)
+	c.run(ch)
 
 }

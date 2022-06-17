@@ -1,6 +1,10 @@
 package main
 
 import (
+	"fmt"
+	"time"
+
+	"k8s.io/apimachinery/pkg/util/wait"
 	appsinformers "k8s.io/client-go/informers/apps/v1"
 	"k8s.io/client-go/kubernetes"
 	applisters "k8s.io/client-go/listers/apps/v1"
@@ -35,4 +39,28 @@ func NewController(clientset kubernetes.Interface, depInformer appsinformers.Dep
 	)
 
 	return c
+}
+
+func (c *controller) run(ch <-chan struct{}) {
+	fmt.Println("Initializing controller...")
+	if !cache.WaitForCacheSync(ch, c.depCacheSynced) {
+		fmt.Println("Waiting cache syncronization...")
+	}
+
+	go wait.Until(c.worker, 1*time.Second, ch)
+
+	<-ch
+
+}
+
+func (c *controller) worker() {
+
+}
+
+func handleAdd(obj interface{}) {
+	println("Testing handleAdd func")
+}
+
+func handleDelete(obj interface{}) {
+	println("Testing handleDelete func")
 }
