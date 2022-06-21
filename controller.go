@@ -95,10 +95,29 @@ func (c *controller) processItem() bool {
 func (c *controller) syncDeployment(ns, name string) error {
 
 	ctx := context.Background()
-	svc := corev1.Service{}
-	_, err := c.clientset.CoreV1().Services(ns).Create(ctx, &svc, metav1.CreateOptions{})
+
+	dep, err := c.depLister.Deployments(ns).Get(name)
 	if err != nil {
-		fmt.Printf("SCreating service %s\n", err.Error())
+		fmt.Printf("Getting deployment from lister %s\n", err.Error())
+	}
+
+	svc := corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      dep.Name,
+			Namespace: ns,
+		},
+		Spec: corev1.ServiceSpec{
+			Ports: []corev1.ServicePort{
+				{
+					Name: "http",
+					Port: 80,
+				},
+			},
+		},
+	}
+	_, err = c.clientset.CoreV1().Services(ns).Create(ctx, &svc, metav1.CreateOptions{})
+	if err != nil {
+		fmt.Printf("Creating service %s\n", err.Error())
 	}
 
 	return nil
