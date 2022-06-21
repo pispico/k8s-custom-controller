@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -70,6 +71,8 @@ func (c *controller) processItem() bool {
 		return false //no object in queue
 	}
 
+	defer c.queue.Forget(item)
+
 	key, err := cache.MetaNamespaceKeyFunc(item)
 	if err != nil {
 		fmt.Printf("Getting keu from cache %s\n", err.Error())
@@ -107,6 +110,7 @@ func (c *controller) syncDeployment(ns, name string) error {
 			Namespace: ns,
 		},
 		Spec: corev1.ServiceSpec{
+			Selector: depLabels(*dep),
 			Ports: []corev1.ServicePort{
 				{
 					Name: "http",
@@ -115,12 +119,18 @@ func (c *controller) syncDeployment(ns, name string) error {
 			},
 		},
 	}
+
 	_, err = c.clientset.CoreV1().Services(ns).Create(ctx, &svc, metav1.CreateOptions{})
 	if err != nil {
 		fmt.Printf("Creating service %s\n", err.Error())
 	}
 
 	return nil
+}
+
+func depLabels(dep appsv1.Deployment) map[string]string {
+	return dep.Spec.Template.Labels
+
 }
 
 func (c *controller) handleAdd(obj interface{}) {
